@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thử Thách Vui - Dũng, Cún, Bẹp, Kathy</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        /* Style for player selection buttons */
+        .player-select-btn {
+            padding: 12px 20px;
+            margin: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1.1em;
+            cursor: pointer;
+            background-color: #e7f3ff;
+            color: #0056b3;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .player-select-btn:hover {
+            background-color: #cce5ff;
+        }
+         .player-select-btn:active {
+             transform: scale(0.98);
+         }
+
+        /* Style for other buttons */
+        button:not(.player-select-btn) {
+             padding: 10px 15px;
+             margin: 10px 5px;
+             border-radius: 5px;
+             font-size: 1em;
+             cursor: pointer;
+             background-color: #007bff;
+             color: white;
+             border: none;
+             transition: background-color 0.3s ease;
+         }
+         button:not(.player-select-btn):hover {
+             background-color: #0056b3;
+         }
+         button:disabled {
+            background-color: #cccccc !important; /* Ensure disabled style overrides */
+            cursor: not-allowed;
+            color: #666 !important;
+         }
+
+        #game-area {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        #spinner-info span { /* Style for the green spinner name */
+             color: green;
+             font-weight: bold;
+        }
+        #wheel-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #dc3545; /* Red color for the chosen person */
+            margin: 20px 0;
+            min-height: 30px; /* Reserve space */
+            border: 2px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            /* Add transition for smoother text change */
+            transition: background-color 0.1s ease-out;
+        }
+        #wheel-display.spinning {
+             background-color: #fff3cd; /* Highlight during spin */
+             color: #856404; /* Darker text during spin for contrast */
+        }
+        #dare-area { /* Keep dare area styling */
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
+         #dare-text {
+            font-style: italic;
+            color: #555;
+             margin-top: 10px;
+             line-height: 1.6;
+         }
+        #dare-count {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎲 Thử Thách Vui 🎲</h1>
+
+        <div id="setup-area">
+            <h2>Chọn người quay:</h2>
+            <!-- Player selection buttons will be added here by JS -->
+        </div>
+
+        <div id="game-area" class="hidden">
+            <h2 id="spinner-info"></h2> 
+            <p>Nhấn nút để quay chọn người chơi!</p>
+            <div id="wheel-display">(Vòng quay sẽ hiển thị ở đây)</div>
+            <button id="spin-btn">Quay!</button>
+
+            <div id="dare-area" class="hidden">
+                <h3>Thử thách:</h3>
+                <p id="dare-text"></p>
+            </div>
+
+             <button id="next-turn-btn" class="hidden">Chọn người quay khác</button>
+        </div>
+
+        <div id="dare-count"></div>
+         <div id="game-over" class="hidden" style="margin-top: 20px; color: red; font-weight: bold;">
+            Hết thử thách rồi! Chơi lại thì tải lại trang nhé!
+        </div>
+    </div>
+
+    <script>
+        const players = ['Duke', 'Kathy', 'Minh', 'Hương'];
+        let availableDares = [
+            // Dares renumbered 1-40
+            { id: 1, text: "Hai người ôm nhau trong vòng 30s." },
+            { id: 2, text: "Cởi Đồ Theo Yêu Cầu: Đối phương cởi một món đồ trên người bạn và ngược lại." },
+            { id: 3, text: "Cởi Đồ Theo Yêu Cầu: Đối phương cởi một món đồ trên người bạn và ngược lại." },
+            { id: 4, text: "Hai người cùng song ca 1 đoạn nhạc trong 30s" },
+            { id: 5, text: "Tét mông: Tụt quần, Chổng mông như tư thế Doggy để đối phương tét mông 3 cái. Và ngược lại. " },
+            { id: 6, text: "Cởi Đồ Theo Yêu Cầu: Đối phương cởi một món đồ trên người bạn và ngược lại." },
+            { id: 7, text: "Ngồi Lên Đùi: Ngồi đối mặt lên đùi đối phương và cầm 2 tay đối phương đặt lên ngực mình trong 2 phút." },
+            { id: 8, text: "Tét mông: Tụt quần, Chổng mông như tư thế Doggy để đối phương tét mông 3 cái. Và ngược lại. " },
+            { id: 9, text: "JAV Idol : Bạn và đối phương tái hiện cảnh make love như film xxx trong 2 phút." },
+            { id: 10, text: "Hít đất: Đối phương nằm ngửa, bạn nằm trên đối phương hít đất 5 cái, mũi chạm mũi hoặc môi chạm môi đối phương." },
+            { id: 11, text: "Hít đất: Đối phương nằm ngửa, bạn nằm trên đối phương hít đất 5 cái, mũi chạm mũi hoặc môi chạm môi đối phương." },
+            { id: 12, text: "Thẩm du nhẹ nhàng: Bạn và đối phương nhìn nhau và cùng dùng tay tự kích thích lên vùng kín hoặc đầu ty của mình trong 2 phút." },
+            { id: 13, text: "Cho Phép Chạm: Nhắm mắt lại và cho phép đối phương chạm vào bất cứ đâu trên cơ thể bạn trong 2 phút. Và ngược lại." },
+            { id: 14, text: "Mát Xa Vùng nhạy cảm : Đối phương mát xa nhẹ nhàng vùng nhạy cảm (vùng mặc bikini) của bạn. Và ngược lại." },
+            { id: 15, text: "Tét mông: Tụt quần, Chổng mông như tư thế Doggy để đối phương tét mông 3 cái. Và ngược lại. " },
+            { id: 16, text: "Để đối phương dùng toy (hoặc tay) kích thích cho bạn trong 2 phút. Và ngược lại." },
+            { id: 17, text: "Hít đất: Đối phương nằm ngửa, bạn nằm trên đối phương hít đất 5 cái, mũi chạm mũi hoặc môi chạm môi đối phương." },
+            { id: 18, text: "Tạo Dáng Khiêu Khích: Tạo một tư thế bạn nghĩ là gợi cảm nhất và giữ yên trong 2 phút để đối phương ngắm nhìn. Và ngược lại." },
+            { id: 19, text: "Yêu Cầu Bằng hành động: Mô tả bằng hành động (ko được nói) yêu cầu đối phương cùng làm một tư thế quan hệ mà bạn thích." },
+            { id: 20, text: "Nụ Hôn Môi Chạm Môi: Trao cho đối phương một nụ hôn kéo dài ít nhất 10s." },
+            { id: 21, text: "Lột Đồ Bằng Một Tay: Thử thách cởi một món đồ của đối phương chỉ bằng một tay và ngược lại." },
+            { id: 22, text: "Mát Xa Ngực : Ngồi đối mặt lên đùi đối phương, đối phương nhẹ nhàng mát xa vùng ngực của bạn bằng 2 tay." },
+            { id: 23, text: "Hít đất: Đối phương nằm ngửa, bạn nằm trên đối phương hít đất 5 cái, mũi chạm mũi hoặc môi chạm môi đối phương." },
+            { id: 24, text: "Mô Phỏng Lap Dance: Thực hiện màn múa gợi cảm trên đùi đối phương trong 2 phút (chỉ được mặc quần lót chứ ko được mặc quần dài, có thể mặc áo)Và ngược lại." },
+            { id: 25, text: "Trêu Ghẹo Núm Vú : Nhẹ nhàng dùng đầu ngón tay, môi hoặc lưỡi trêu ghẹo núm vú của đối phương. Và ngược lại." },
+            { id: 26, text: "Thẩm du nhẹ nhàng: Bạn và đối phương nhìn nhau và cùng dùng tay tự kích thích lên vùng kín hoặc đầu ty của mình trong 2 phút." },
+            { id: 27, text: "Yêu Cầu Tư Thế: Đối phương yêu cầu bạn cùng tạo dáng một tư thế quan hệ trong 2 phút (ví dụ: chống tay và đầu gối như tư thế doggy, nằm ngửa ưỡn người, cưỡi ngựa...)." },
+            { id: 28, text: "Tạo dáng tư thế 69 với đối phương, cả 2 chỉ mặc đồ lót hoặc ko mặc gì." },
+            { id: 29, text: "Quan Hệ Bằng Miệng (Oral Sex ): Bạn và đối phương quan hệ bằng miệng trong khoảng thời gian 2 phút." },
+            { id: 30, text: "Quan Hệ Bằng Miệng (Oral Sex ): Bạn và đối phương quan hệ bằng miệng trong khoảng thời gian 2 phút." },
+            { id: 31, text: "Cùng Cởi Đồ: Cả hai cùng nhìn vào mắt nhau và từ từ cởi một món đồ giống nhau (ví dụ: cùng cởi áo)." },
+            { id: 32, text: "Hôn theo yêu cầu: Đối phương yêu cầu bạn hôn lên 1 bộ phận cơ thể của họ Và ngược lại." },
+            { id: 33, text: "Thử Tư Thế Doggy : Bạn vào đối phương tạo dáng tư thế doggy trong 2 phút." },
+            { id: 34, text: "Rên như JAV: Bạn và đối phương cùng tạo tiếng rên giống như phim JAV trong 2 phút, Ghi âm và nghe lại tiếng Rên của cả 2." },
+            { id: 35, text: "Mát Xa Vùng nhạy cảm : Đối phương mát xa nhẹ nhàng vùng nhạy cảm (vùng mặc bikini) của bạn và ngược lại." },
+            { id: 36, text: "Make love : Bạn và đối phương tái hiện cảnh make love như film xxx trong 2 phút." },
+            { id: 37, text: "Cởi Đồ Theo Yêu Cầu: Đối phương cởi một món đồ trên người bạn và ngược lại." },
+            { id: 38, text: "JAV Idol : Bạn và đối phương tái hiện cảnh make love như film xxx trong 2 phút." },
+            { id: 39, text: "Cởi Đồ Theo Yêu Cầu: Đối phương cởi một món đồ trên người bạn và ngược lại." },
+            { id: 40, text: "Quyền Ra Lệnh Ngược: Đối phương được quyền ra một mệnh lệnh gợi cảm cho bạn thực hiện ngay lập tức và ngược lại." }
+        ];
+
+        let currentSpinner = '';
+        let potentialTargets = [];
+        let spinningInterval = null;
+
+        // DOM Elements
+        const setupArea = document.getElementById('setup-area');
+        const gameArea = document.getElementById('game-area');
+        const spinnerInfo = document.getElementById('spinner-info');
+        const wheelDisplay = document.getElementById('wheel-display');
+        const spinBtn = document.getElementById('spin-btn');
+        // Removed resultArea and chosenPersonP references
+        const dareArea = document.getElementById('dare-area');
+        const dareTextP = document.getElementById('dare-text');
+        const nextTurnBtn = document.getElementById('next-turn-btn');
+        const dareCountDiv = document.getElementById('dare-count');
+        const gameOverDiv = document.getElementById('game-over');
+
+        // Functions
+        function createPlayerButtons() {
+            setupArea.innerHTML = '<h2>Chọn người quay:</h2>';
+            players.forEach(player => {
+                const button = document.createElement('button');
+                button.textContent = player;
+                button.classList.add('player-select-btn');
+                button.dataset.player = player;
+                button.addEventListener('click', () => {
+                    if (availableDares.length === 0) {
+                        showGameOver();
+                        return;
+                    }
+                    setupTurn(player);
+                });
+                setupArea.appendChild(button);
+            });
+        }
+
+        function updateDareCount() {
+            dareCountDiv.textContent = `Số thử thách còn lại: ${availableDares.length}`;
+            if (availableDares.length === 0) {
+                showGameOver();
+            }
+        }
+
+        function setupTurn(spinnerName) {
+            currentSpinner = spinnerName;
+            potentialTargets = players.filter(p => p !== currentSpinner);
+
+            // Display spinner name in green
+            spinnerInfo.innerHTML = `<span>${currentSpinner}</span> đang quay...`;
+
+            wheelDisplay.textContent = `Sẵn sàng quay: [ ${potentialTargets.join(' | ')} ]`;
+            wheelDisplay.classList.remove('spinning');
+
+            // Reset areas (resultArea no longer exists)
+            dareArea.classList.add('hidden');
+            nextTurnBtn.classList.add('hidden');
+            spinBtn.disabled = false;
+            dareTextP.textContent = '';
+
+            setupArea.classList.add('hidden');
+            gameArea.classList.remove('hidden');
+            gameOverDiv.classList.add('hidden');
+        }
+
+        function spinWheel() {
+            if (availableDares.length === 0) {
+                 showGameOver();
+                return;
+            }
+
+            spinBtn.disabled = true;
+            // Reset areas (resultArea no longer exists)
+            dareArea.classList.add('hidden');
+            nextTurnBtn.classList.add('hidden');
+            wheelDisplay.classList.add('spinning');
+
+
+            let spinDuration = 3000; // 3 seconds
+            let startTime = Date.now();
+            let currentIndex = 0;
+
+             if (spinningInterval) {
+                clearInterval(spinningInterval);
+             }
+
+            spinningInterval = setInterval(() => {
+                wheelDisplay.textContent = potentialTargets[currentIndex % potentialTargets.length];
+                currentIndex++;
+
+                if (Date.now() - startTime > spinDuration) {
+                    stopSpinning();
+                }
+            }, 100);
+        }
+
+        function stopSpinning() {
+            if(spinningInterval) {
+                clearInterval(spinningInterval);
+                spinningInterval = null;
+            }
+            wheelDisplay.classList.remove('spinning');
+
+
+            const randomIndex = Math.floor(Math.random() * potentialTargets.length);
+            const chosenPerson = potentialTargets[randomIndex];
+
+            // Display the chosen person directly in the wheel display area
+            wheelDisplay.textContent = chosenPerson;
+            // resultArea is removed, no need to update it
+
+            selectAndDisplayDare();
+
+             if (availableDares.length > 0) {
+                 nextTurnBtn.classList.remove('hidden');
+             }
+        }
+
+         function selectAndDisplayDare() {
+             if (availableDares.length === 0) {
+                 showGameOver();
+                 return;
+             }
+
+             const dareIndex = Math.floor(Math.random() * availableDares.length);
+             const selectedDare = availableDares[dareIndex];
+
+             // Display dare ID and text
+             dareTextP.innerHTML = `<strong>${selectedDare.id}:</strong> ${selectedDare.text}`;
+             dareArea.classList.remove('hidden');
+
+             availableDares.splice(dareIndex, 1);
+             updateDareCount();
+         }
+
+         function resetForNextTurn() {
+             gameArea.classList.add('hidden');
+             setupArea.classList.remove('hidden');
+              if (availableDares.length === 0) {
+                  showGameOver();
+              }
+         }
+
+         function showGameOver() {
+             if (!gameArea.classList.contains('hidden')) {
+                gameArea.classList.add('hidden');
+             }
+             if (setupArea.classList.contains('hidden')) {
+                 setupArea.classList.remove('hidden');
+             }
+             document.querySelectorAll('.player-select-btn').forEach(button => {
+                 button.disabled = true;
+             });
+
+             spinBtn.disabled = true;
+             nextTurnBtn.classList.add('hidden');
+             gameOverDiv.classList.remove('hidden');
+             updateDareCount();
+         }
+
+
+        // Event Listeners
+        spinBtn.addEventListener('click', spinWheel);
+        nextTurnBtn.addEventListener('click', resetForNextTurn);
+
+        // Initial Setup
+        createPlayerButtons();
+        updateDareCount();
+
+    </script>
+</body>
+</html>
